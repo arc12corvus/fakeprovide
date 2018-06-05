@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 #
 # This script will generate an RPM that "provides" a named dependency.
 
@@ -7,6 +7,8 @@ RPM_SUMMARY=
 RPM_BUILD_SOURCE=0
 RPM_BUILD_BINARY=1
 RPM_ADDL_PROVIDES=()
+RPM_GROUP_NAME=Fake
+RPM_LICENSE=GPL
 
 # Exit with an error message.
 die () {
@@ -17,10 +19,10 @@ die () {
 
 # Show usage information.
 usage () {
-	echo "$0: usage: $0 [ -v version ] [ -a arch ] [ -s summary ] [-P extra provides] [ -BS ] name"
+	echo "$0: usage: $0 [ -v version ] [ -a arch ] [ -s summary ] [-P extra provides] [ -BS ] [-L license name(defaults to GPL)] [-G group (defaults to 'Fake')] name"
 }
 
-while getopts 'a:s:hSBP:v:' ch; do
+while getopts 'a:s:hSBP:v:L:G:' ch; do
 	case $ch in
 		(a)	RPM_BUILDARCH="$OPTARG";;
 		(s)	RPM_SUMMARY="$OPTARG";;
@@ -28,6 +30,8 @@ while getopts 'a:s:hSBP:v:' ch; do
 		(B)	RPM_BUILD_BINARY=0;;
 		(P)	RPM_ADDL_PROVIDES+=($OPTARG);;
 		(v)	RPM_VERSION="$OPTARG";;
+		(L) RPM_LICENSE="$OPTARG";;
+		(G) RPM_GROUP_NAME="$OPTARG";;
 		(h)	usage
 			exit 0
 			;;
@@ -43,6 +47,8 @@ shift $(( $OPTIND - 1 ))
 # (and clean it up when we're done).
 tmpdir=$(mktemp -d -t rpmspecXXXXXX)
 trap "rm -rf $tmpdir" EXIT INT QUIT TERM HUP
+echo "RPM_GROUP_NAME:${RPM_GROUP_NAME}"
+echo "RPM_LICENSE:${RPM_LICENSE}"
 
 provide=$1
 
@@ -62,10 +68,10 @@ cat > $tmpdir/fakeprovide.spec <<EOF
 Name:		fakeprovide-$provide
 Version:	${RPM_VERSION:-$(date "+%Y%m%d%H%M%S")}
 Release:	1%{?dist}
-Summary:	${RPM_SUMMARY:-Fake provide for $provide.}
+Summary:	${RPM_SUMMARY:-Fake provider for $provide.}
 
-Group:		Fake
-License:	GPL
+Group:		${RPM_GROUP_NAME}
+License:	${RPM_LICENSE}
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 Source:		README
